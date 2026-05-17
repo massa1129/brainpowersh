@@ -1,10 +1,28 @@
-tape = @{
-    left = [System.Collections.Generic.Stack[int]]::new()
-    right = [System.Collections.Generic.Stack[int]]::new()
-    current = 0
+class Command {
+    [char]$Op # '+', '-', '>', '<', ',', '.', '[', ']'
+    [int]$Value
+    [int]$JumpOffset
+
+    Command([char]$op) {
+        $this.Op = $op
+        $this.Value = 1
+        $this.JunmpOffset = 0
+    }
 }
 
-$Script::MaxCellValue = 255 # 8bit 最大値
+$BrainfuckSession = @{
+    Program = [System.Collections.Generic.List[Command]]::new()
+
+    PendingOpen = [System.Collections.Generic.Stack[int]]::new()
+
+    tape = @{
+        left = [System.Collections.Generic.Stack[int]]::new()
+        right = [System.Collections.Generic.Stack[int]]::new()
+        current = 0
+    }
+}
+
+$Script:PC = 0
 
 function Move-Right(){
     $tape.left.Push($tape.current)
@@ -26,6 +44,7 @@ function Move-Left(){
     }
 }
 
+$Script::MaxCellValue = 255 # 8bit 最大値
 function Update-TapeValue {
     param(
         [Parameter(Mandatory=$true)]
