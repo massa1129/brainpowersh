@@ -1,17 +1,17 @@
-class Command {
+class BfCommand {
     [char]$Op # '+', '-', '>', '<', ',', '.', '[', ']'
     [int]$Value
     [int]$JumpOffset
 
-    Command([char]$op) {
+    BfCommand([char]$op) {
         $this.Op = $op
         $this.Value = 1
-        $this.JunmpOffset = 0
+        $this.JumpOffset = 0
     }
 }
 
 $BrainfuckSession = @{
-    Program = [System.Collections.Generic.List[Command]]::new()
+    Program = [System.Collections.Generic.List[BfCommand]]::new()
 
     PendingOpen = [System.Collections.Generic.Stack[int]]::new()
 
@@ -23,6 +23,50 @@ $BrainfuckSession = @{
 }
 
 $Script:PC = 0
+
+function Append-AndRegisterRle {
+    param(
+        [string]$NewInputText
+    )
+
+    # 圧縮対象
+    $rleTargets = @('+', '-')
+    $ValidChars = @([char]'+', [char]'-', [char]'<', [char]'>', [char]',', [char]'.', [char]'[', [char]']')
+
+    foreach ($char in $NewInputText.ToCharArray()) {
+
+        if ($ValidChars -notcontains $char) { continue }
+
+        $lastCmd = if ($BrainfuckSession.Program.Count -gt 0) { $BrainfuckSession.Program[-1] } else { $null }
+
+        if ( $null -ne $lastCmd -and $lastCmd.Op -eq $char -and $rleTargets -contains $char) {
+            $lastCmd.Value++
+        } else {
+            [BfCommand]$newCmd = [BfCommand]::new($char)
+            $BrainfuckSession.Program.Add($newCmd)
+
+            $currentIndex = $BrainfuckSession.Program.Count - 1
+
+            if ($char -eq '[') {
+                $BrainfuckSession.PendingOpen.Push($currentIndex)
+            }
+            elseif ($char -eq ']') {
+                if ($BrainfuckSession.PendingOpen.Count -gt 0) {
+                    $openIndex = $BrainfuckSession.PendingOpen.Pop()
+
+                    $distance = $currentIndex - $openIndex
+
+                    $BrainfuckSession.Program[$openIndex].JumpOffset = $distance
+                    $BrainfuckSession.Program[$currentIndex].JumpOffset = -$distance
+                } else {
+                    Write-Error "Syntax Error: 対応する '[' がありません。"
+                    return $false
+                }
+            }
+        }
+    }
+    return $true
+}
 
 function Move-Right(){
     $tape.left.Push($tape.current)
@@ -44,7 +88,7 @@ function Move-Left(){
     }
 }
 
-$Script::MaxCellValue = 255 # 8bit 最大値
+$Script:MaxCellValue = 255 # 8bit 最大値
 function Update-TapeValue {
     param(
         [Parameter(Mandatory=$true)]
