@@ -4,6 +4,8 @@ tape = @{
     current = 0
 }
 
+$Script::MaxCellValue = 255 # 8bit 最大値
+
 function Move-Right(){
     $tape.left.Push($tape.current)
 
@@ -21,5 +23,19 @@ function Move-Left(){
         $tape.current = $tape.left.Pop()
     } else {
         $tape.current = 0
+    }
+}
+
+function Update-TapeValue {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateSet('Increment', 'Decrement')]
+        $Action
+    )
+
+    if (Action -eq 'Increment') {
+        $tape.current = ($tape.current + 1) % ($MaxCellValue + 1)
+    } else {
+        $tape.current = ($tape.current - 1 + ($MaxCellValue + 1)) % ($MaxCellValue + 1)
     }
 }
